@@ -1,68 +1,48 @@
 import pandas as pd
 
 df = pd.read_csv('data.csv', sep=',')
-# keep the loc, gpe, camp, ghetto and O tags only 
-tag_list = ['B-GPE', ' I-GPE', 'B-LOC', 'I-LOC', 'B-CAMP', 'I-CAMP', 'B-GHETTO', 'I-GHETTO']
+# keep the loc, gpe, camp, ghetto and O tags only
+tag_list = ['B-GPE',' I-GPE', 'B-LOC','I-LOC','B-CAMP', 'I-CAMP', 'B-GHETTO', 'I-GHETTO']
 df['new_tag_set'] = df['Tag'].apply(lambda x: x if x in tag_list else 'O')
 
+#
 # Identify sentence boundaries based on the full stop in the 'words' column
 df['sentence_boundary'] = df['Gold'].str.endswith('.')
 df['sentence_id'] = (df['sentence_boundary'].shift(fill_value=False) & ~df['sentence_boundary']).cumsum()
 grouped_df = df.groupby('sentence_id').agg({'Gold': list, 'new_tag_set': list}).reset_index()
-grouped_df['tags'] = grouped_df['new_tag_set'].apply(lambda x: [tag for tag in x if tag != '.'])
 grouped_df['sentence'] = grouped_df['Gold'].apply(' '.join)
+
+grouped_df['tags'] = grouped_df['new_tag_set'].apply(lambda x: [tag for tag in x if tag != '.'])
 result_df = grouped_df[['Gold', 'new_tag_set', 'sentence']]
 
-# Print the result for one instances
-desired_row_index = 0
-desired_row = result_df.iloc[desired_row_index]
-print(desired_row)
+print(result_df)
 
+# Function to extract bigrams from a sentence
+def extract_bigrams(sentence):
+    words = sentence.split()
+    return [tuple(words[i:i + 2]) for i in range(len(words) - 1)]
 
-# extract the window size relavant to the target word.
-def extract_window_around_target(text, target_word, window_size):
-    words = text.split()
-    try:
-        target_index = words.index(target_word)
-        start_index = max(0, target_index - window_size)
-        end_index = min(len(words), target_index + window_size + 1)
-        window_words = words[start_index:end_index]
-        target_index_in_window = target_index - start_index
+# Specify the target word and window size
+target_word = 'example'
+window_size = 2
+# Insert a new sentence
+new_sentence = "This is a new example sentence."
+new_bigrams = extract_bigrams(new_sentence)
 
-        # If we want to measure the before and after parts of the code
-        begin_words = window_words[:target_index_in_window]
-        after_words = window_words[target_index_in_window + 1:]
+# Extract bigrams from existing sentences and compare with the new sentence
+similarities = []
+for i, existing_sentence in result_df.iterrows():
+    existing_bigrams = extract_bigrams(existing_sentence['sentence'])
+    # Count common bigrams
+    common_bigrams = len(set(new_bigrams).intersection(existing_bigrams))
+    similarities.append((i, common_bigrams))
 
-        bigrams_before = [window_words[i:i + 2] for i in range(target_index_in_window) if
-                          i + 1 < target_index_in_window]
-        bigrams_after = [window_words[i:i + 2] for i in range(target_index_in_window + 1, len(window_words) - 1) if
-                         i + 1 < len(window_words) - 1]
-
-        return bigrams_before, bigrams_after
-
-    except ValueError:
-        return None
-
-
-# Example usage:
-# input_text = "This is an example text to demonstrate window extraction in Python."
-# for i in result_df['sentence']:
-#     input_text = i
-#     target_word = "living"
-#     window_size = 4
-#
-#     bigrams_before, bigrams_after = extract_window_around_target(input_text, target_word, window_size)
-#
-#     print("Bigrams before:", bigrams_before)
-#     print("Bigrams after:", bigrams_after)
-
-target_word = "living"
-window_size = 4
-
-result_df['windows'] = result_df['sentence'].apply(lambda x: extract_window_around_target(x, target_word, window_size))
-result_df = result_df.dropna().reset_index(drop=True)
+# Sort and get the top 5 similar sentences based on common bigrams
+top_similar_sentences = sorted(similarities, key=lambda x: x[1], reverse=True)[:5]
 
 # Print the result
-print(result_df[['sentence', 'windows']])
-
+print(f"\nNew Sentence:\n{new_sentence}\n")
+print("Top 5 Similar Sentences:")
+for index, common_bigrams in top_similar_sentences:
+    print(f"{result_df['sentence'][index]} (Common Bigrams: {common_bigrams})")
 
