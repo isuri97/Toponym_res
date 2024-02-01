@@ -54,9 +54,6 @@ for i, existing_sentence in result_df.iterrows():
 # Sort and get the top 5 similar sentences based on common POS tags
 top_similar_sentences = sorted(similarities, key=lambda x: x[1], reverse=True)[:5]
 
-# Filter the top similar sentences to ensure they include the target word
-# filtered_top_similar_sentences = [(sentence, common_pos_tags, tags) for sentence, common_pos_tags, tags in top_similar_sentences if target_word in sentence]
-
 # Print the result
 print(f"\nNew Sentence:\n{new_sentence}\n")
 print("Top 5 Similar Sentences:")
