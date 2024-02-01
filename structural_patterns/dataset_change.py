@@ -30,14 +30,16 @@ new_sentence = "THe was taken to auschwitz camp in Poland."
 new_bigrams = extract_bigrams(new_sentence)
 
 # Extract bigrams from existing sentences and compare with the new sentence
+# Extract bigrams from existing sentences and compare with the new sentence
 similarities = []
 for i, existing_sentence in result_df.iterrows():
-    existing_bigrams = extract_bigrams(existing_sentence['sentence'])
-    # Count common bigrams
-    common_bigrams = len(set(new_bigrams).intersection(existing_bigrams))
-    # Filter out sentences that do not contain the target word
-    if target_word in existing_sentence['sentence']:
-        similarities.append((i, common_bigrams))
+    existing_words = existing_sentence['Gold']
+    existing_tags = existing_sentence['new_tag_set']
+    common_bigrams = 0
+    for word, tag in zip(existing_words, existing_tags):
+        if target_word in existing_sentence['sentence']:
+            common_bigrams += int(word.lower() == target_word.lower())  # Increment count if the word matches the target
+    similarities.append((i, common_bigrams))
 
 # Sort and get the top 5 similar sentences based on common bigrams
 top_similar_sentences = sorted(similarities, key=lambda x: x[1], reverse=True)[:5]
@@ -46,4 +48,11 @@ top_similar_sentences = sorted(similarities, key=lambda x: x[1], reverse=True)[:
 print(f"\nNew Sentence:\n{new_sentence}\n")
 print("Top 5 Similar Sentences:")
 for index, common_bigrams in top_similar_sentences:
-    print(f"{result_df['sentence'][index]} (Common Bigrams: {common_bigrams})")
+    similar_sentence = result_df['sentence'][index]
+    similar_tags = result_df['new_tag_set'][index]
+    words_tags = [f"{word}-{tag}" for word, tag in zip(similar_sentence.split(), similar_tags)]
+    print(" ".join(words_tags))
+    print(f"Common Words with Target: {common_bigrams}")
+    print()
+
+#extract the top 5 sentences and their tags from the inital dataset
